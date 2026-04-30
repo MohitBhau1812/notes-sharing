@@ -24,10 +24,9 @@ jobs:
       - name: Run Tests
         run: mvn test
 
-  
   deploy:
     runs-on: ubuntu-latest
-    # needs: docker-build-push
+    needs: build-and-test
     steps:
       - name: Deployment Done
         run: echo "Image pushed! Pull and run it with Docker Desktop on your PC"
