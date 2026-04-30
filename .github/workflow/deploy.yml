@@ -7,9 +7,10 @@ on:
     branches: [main]
 
 jobs:
+  # Job 1: Build the project with Maven and run all tests
   build-and-test:
-    name: Maven Build & Test
-    runs-on: ubuntu-latest # GitHub provides a fresh Ubuntu machine
+    name: Maven Build and Test
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -21,6 +22,7 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
+      # Cache Maven dependencies so the pipeline runs faster next time
       - name: Cache Maven packages
         uses: actions/cache@v3
         with:
@@ -28,8 +30,9 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Build with Maven
+      - name: Build and test with Maven
         run: mvn clean package -B
+        # If ANY test fails here, the next jobs don't run
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
@@ -37,16 +40,17 @@ jobs:
           name: app-jar
           path: target/notes-sharing-1.0.0.jar
 
+  # Job 2: Build Docker image and push to Docker Hub
   docker-build-push:
-    name: Docker Build & Push
+    name: Docker Build and Push
     runs-on: ubuntu-latest
-    needs: build-and-test 
+    needs: build-and-test # Only runs if Job 1 passes
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -66,20 +70,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    name: Deploy to Server
+  # Job 3: Pull the new image on your PC using Docker Desktop
+  deploy-instructions:
+    name: Deploy via Docker Desktop
     runs-on: ubuntu-latest
-    needs: docker-build-push 
+    needs: docker-build-push
 
     steps:
-      - name: Deploy container
+      - name: Show Docker Desktop deploy commands
         run: |
-          echo "======================================="
-          echo "Deployment Steps (run on your server):"
-          echo "======================================="
-          echo "1. docker pull ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest"
-          echo "2. docker stop notes-container || true"
-          echo "3. docker rm notes-container || true"
-          echo "4. docker run -d -p 8080:8080 --name notes-container \
-                   ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest"
-          echo "Website is live at http://your-server-ip:8080"
+          echo "====================================================="
+          echo "Image pushed to Docker Hub successfully!"
+          echo "Now pull and run it on your PC with Docker Desktop:"
+          echo ""
+          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest"
+          echo "docker stop notes-container || true"
+          echo "docker rm notes-container || true"
+          echo "docker run -d -p 8080:8080 --name notes-container \"
+                     ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest"
+          echo ""
+          echo "Or use Docker Desktop GUI: Images → Pull → Run"
+          echo "Website will be at http://localhost:8080"
+          echo "====================================================="
