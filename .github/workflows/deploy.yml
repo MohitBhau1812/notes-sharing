@@ -1,0 +1,54 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Build With Maven
+        run: mvn clean package -B
+
+      - name: Run Tests
+        run: mvn test
+
+  docker-build-push:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build Docker Image
+        run: docker build -t notes-app .
+
+      - name: List Docker Images
+        run: docker images
+
+      - name: Tag Docker Image
+        run: docker tag notes-app ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest
+
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    steps:
+      - name: Deployment Done
+        run: echo "Image pushed! Pull and run it with Docker Desktop on your PC"
