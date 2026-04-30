@@ -1,94 +1,54 @@
-name: Build, Test, and Deploy Notes App
+name: CI-CD Pipeline
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  # Job 1: Build the project with Maven and run all tests
   build-and-test:
-    name: Maven Build and Test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set Up Java
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
 
-      # Cache Maven dependencies so the pipeline runs faster next time
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Build and test with Maven
+      - name: Build With Maven
         run: mvn clean package -B
-        # If ANY test fails here, the next jobs don't run
 
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-jar
-          path: target/notes-sharing-1.0.0.jar
+      - name: Run Tests
+        run: mvn test
 
-  # Job 2: Build Docker image and push to Docker Hub
   docker-build-push:
-    name: Docker Build and Push
     runs-on: ubuntu-latest
-    needs: build-and-test # Only runs if Job 1 passes
-
+    needs: build-and-test
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build Docker Image
+        run: docker build -t notes-app .
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest
-            ${{ secrets.DOCKER_USERNAME }}/notes-sharing:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: List Docker Images
+        run: docker images
 
-  # Job 3: Pull the new image on your PC using Docker Desktop
-  deploy-instructions:
-    name: Deploy via Docker Desktop
+      - name: Tag Docker Image
+        run: docker tag notes-app ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest
+
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest
+
+  deploy:
     runs-on: ubuntu-latest
     needs: docker-build-push
-
     steps:
-      - name: Show Docker Desktop deploy commands
-        run: |
-          echo "====================================================="
-          echo "Image pushed to Docker Hub successfully!"
-          echo "Now pull and run it on your PC with Docker Desktop:"
-          echo ""
-          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest"
-          echo "docker stop notes-container || true"
-          echo "docker rm notes-container || true"
-          echo "docker run -d -p 8080:8080 --name notes-container \"
-                     ${{ secrets.DOCKER_USERNAME }}/notes-sharing:latest"
-          echo ""
-          echo "Or use Docker Desktop GUI: Images → Pull → Run"
-          echo "Website will be at http://localhost:8080"
-          echo "====================================================="
+      - name: Deployment Done
+        run: echo "Image pushed! Pull and run it with Docker Desktop on your PC"
