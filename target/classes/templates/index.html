@@ -1,0 +1,39 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Notes Sharing Website</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+    .header { background: #2563eb; color: white; padding: 20px; border-radius: 8px; }
+    .note-card { border: 1px solid #e5e7eb; padding: 16px; margin: 12px 0; border-radius: 8px; }
+    .btn { padding: 8px 16px; background: #2563eb; color: white; border: none;
+           border-radius: 6px; cursor: pointer; text-decoration: none; display:inline-block; }
+    .btn-red { background: #dc2626; }
+    input[type=text] { padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; width: 60%; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Online Notes Sharing Website</h1>
+    <p>Share and access study notes — anytime, anywhere</p>
+  </div>
+  <div style="margin:20px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <a href="/upload" class="btn">+ Upload Note</a>
+    <form action="/search" method="get" style="display:flex; gap:8px;">
+      <input type="text" name="subject" placeholder="Search by subject..."/>
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+  <div th:each="note : ${notes}" class="note-card">
+    <h3 th:text="${note.title}"></h3>
+    <p><strong>Subject:</strong> <span th:text="${note.subject}"></span></p>
+    <p><strong>By:</strong> <span th:text="${note.uploader}"></span></p>
+    <p th:text="${note.content}"></p>
+    <a th:href="@{/delete/{id}(id=${note.id})}" class="btn btn-red">Delete</a>
+  </div>
+  <div th:if="${#lists.isEmpty(notes)}" style="text-align:center;margin-top:40px;color:#6b7280;">
+    <p>No notes yet. Click "Upload Note" to add the first one!</p>
+  </div>
+</body>
+</html>

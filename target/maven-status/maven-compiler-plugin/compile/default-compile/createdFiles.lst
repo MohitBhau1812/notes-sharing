@@ -1,0 +1,5 @@
+com\notesapp\controller\NoteController.class
+com\notesapp\model\Note.class
+com\notesapp\NotesApplication.class
+com\notesapp\repository\NoteRepository.class
+com\notesapp\service\NoteService.class
