@@ -29,4 +29,4 @@ jobs:
     needs: build-and-test
     steps:
       - name: Deployment Done
-        run: echo "Image pushed! Pull and run it with Docker Desktop on your PC"
+        run: echo "Image pushed! Pull and run it with Docker Desktop on your PC."
